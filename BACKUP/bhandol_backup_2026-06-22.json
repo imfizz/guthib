@@ -1,0 +1,752 @@
+{
+  "users": [
+    {
+      "id": "USR01",
+      "name": "Herrera, Christopher John",
+      "username": "admin",
+      "password": "admin123",
+      "role": "admin",
+      "status": "Active"
+    },
+    {
+      "id": "USR02",
+      "name": "Teresita, Tragura",
+      "username": "staff",
+      "password": "staff123",
+      "role": "staff",
+      "status": "Active"
+    },
+    {
+      "id": "USR03",
+      "name": "Jonas Formilleza",
+      "username": "jonas",
+      "password": "jonas123",
+      "role": "staff",
+      "status": "Active"
+    },
+    {
+      "id": "USR04",
+      "name": "Jemar Penilla",
+      "username": "Jemar",
+      "password": "Jemar123",
+      "role": "staff",
+      "status": "Active"
+    }
+  ],
+  "products": [
+    {
+      "id": "PROD01",
+      "name": "Portland Cement 40kg",
+      "category": "Cement",
+      "unit": "PCS",
+      "quantity": 31,
+      "dateAdded": "22/02/2026",
+      "user": "Jemar Penilla"
+    },
+    {
+      "id": "PROD02",
+      "name": "Washed Sand",
+      "category": "Aggregates",
+      "unit": "METERS",
+      "quantity": 20,
+      "dateAdded": "22/02/2026",
+      "user": "Herrera"
+    },
+    {
+      "id": "PROD03",
+      "name": "3/4 Gravel",
+      "category": "Aggregates",
+      "unit": "METERS",
+      "quantity": 0,
+      "dateAdded": "22/02/2026",
+      "user": "Herrera"
+    },
+    {
+      "id": "PROD04",
+      "name": "CHB 4",
+      "category": "Concrete Hollow Blocks",
+      "unit": "PCS",
+      "quantity": 100,
+      "dateAdded": "22/02/2026",
+      "user": "Herrera"
+    },
+    {
+      "id": "PROD05",
+      "name": "CHB 6",
+      "category": "Concrete Hollow Blocks",
+      "unit": "PCS",
+      "quantity": 54,
+      "dateAdded": "22/02/2026",
+      "user": "Herrera, Christopher John"
+    },
+    {
+      "id": "PROD06",
+      "name": "Deformed Bar 10mm x 6m",
+      "category": "Steel Bars",
+      "unit": "PCS",
+      "quantity": 30,
+      "dateAdded": "22/02/2026",
+      "user": "Herrera"
+    },
+    {
+      "id": "PROD07",
+      "name": "Deformed Bar 12mm x 6m",
+      "category": "Steel Bars",
+      "unit": "PCS",
+      "quantity": 19,
+      "dateAdded": "22/02/2026",
+      "user": "Herrera"
+    },
+    {
+      "id": "PROD08",
+      "name": "GI Tie Wire #16",
+      "category": "Steel Accessories",
+      "unit": "ROLLS",
+      "quantity": 13,
+      "dateAdded": "22/02/2026",
+      "user": "Herrera"
+    },
+    {
+      "id": "PROD09",
+      "name": "Coco Lumber 2x2x8ft",
+      "category": "Lumber",
+      "unit": "PCS",
+      "quantity": 45,
+      "dateAdded": "22/02/2026",
+      "user": "Herrera"
+    },
+    {
+      "id": "PROD10",
+      "name": "Coco Lumber 2x3x10ft",
+      "category": "Lumber",
+      "unit": "PCS",
+      "quantity": 53,
+      "dateAdded": "22/02/2026",
+      "user": "Herrera"
+    },
+    {
+      "id": "PROD11",
+      "name": "Marine Plywood 1/2",
+      "category": "Plywood",
+      "unit": "PCS",
+      "quantity": 11,
+      "dateAdded": "22/02/2026",
+      "user": "Herrera"
+    },
+    {
+      "id": "PROD12",
+      "name": "Phenolic Board 3/4",
+      "category": "Plywood",
+      "unit": "PCS",
+      "quantity": 8,
+      "dateAdded": "22/02/2026",
+      "user": "Herrera, Christopher John"
+    },
+    {
+      "id": "PROD13",
+      "name": "Boysen White Latex 4L",
+      "category": "Paint",
+      "unit": "BUCKETS",
+      "quantity": 20,
+      "dateAdded": "22/02/2026",
+      "user": "Herrera"
+    },
+    {
+      "id": "PROD14",
+      "name": "Boysen Quick Dry Exanmel 1L",
+      "category": "Paint",
+      "unit": "PCS",
+      "quantity": 4,
+      "dateAdded": "22/02/2026",
+      "user": "Herrera"
+    },
+    {
+      "id": "PROD15",
+      "name": "Paint Thinner 4L",
+      "category": "Solvent",
+      "unit": "PCS",
+      "quantity": 0,
+      "dateAdded": "22/02/2026",
+      "user": "Herrera"
+    },
+    {
+      "id": "PROD16",
+      "name": "Common Nails 2",
+      "category": "Nails",
+      "unit": "BOX",
+      "quantity": 0,
+      "dateAdded": "22/02/2026",
+      "user": "Jonas Formilleza"
+    },
+    {
+      "id": "PROD17",
+      "name": "Wood Screws",
+      "category": "Screws",
+      "unit": "BOX",
+      "quantity": 3,
+      "dateAdded": "22/02/2026",
+      "user": "Jonas Formilleza"
+    },
+    {
+      "id": "PROD18",
+      "name": "4x4 Wood",
+      "category": "Plywood",
+      "unit": "PCS",
+      "quantity": 4,
+      "dateAdded": "02/03/2026",
+      "user": "Teresita"
+    }
+  ],
+  "transactions": [
+    {
+      "id": "TXN01",
+      "product": "Steel Rebar (12mm)",
+      "category": "Metals",
+      "type": "Stock In",
+      "quantity": 20,
+      "unit": "PCS",
+      "date": "22/02/2026",
+      "time": "02:30 AM",
+      "user": "Herrera"
+    },
+    {
+      "id": "TXN02",
+      "product": "Hammer",
+      "category": "Hand tools",
+      "type": "Stock In",
+      "quantity": 10,
+      "unit": "PCS",
+      "date": "22/02/2026",
+      "time": "07:03 AM",
+      "user": "Herrera"
+    },
+    {
+      "id": "TXN03",
+      "product": "Hammer",
+      "category": "Hand tools",
+      "type": "Stock Out",
+      "quantity": 5,
+      "unit": "PCS",
+      "date": "22/02/2026",
+      "time": "07:04 AM",
+      "user": "Herrera"
+    },
+    {
+      "id": "TXN04",
+      "product": "Hammer",
+      "category": "Hand tools",
+      "type": "Stock In",
+      "quantity": 10,
+      "unit": "PCS",
+      "date": "22/02/2026",
+      "time": "07:05 AM",
+      "user": "Herrera"
+    },
+    {
+      "id": "TXN05",
+      "product": "Electrical Tape",
+      "category": "Tape",
+      "type": "Stock In",
+      "quantity": 10,
+      "unit": "ROLLS",
+      "date": "22/02/2026",
+      "time": "07:05 AM",
+      "user": "Jonas Formilleza"
+    },
+    {
+      "id": "TXN06",
+      "product": "Electrical Tape",
+      "category": "Tape",
+      "type": "Stock Out",
+      "quantity": 5,
+      "unit": "ROLLS",
+      "date": "22/02/2026",
+      "time": "10:56 PM",
+      "user": "Herrera"
+    },
+    {
+      "id": "TXN07",
+      "product": "Electrical Tape",
+      "category": "Tape",
+      "type": "Stock Out",
+      "quantity": 1,
+      "unit": "ROLLS",
+      "date": "22/02/2026",
+      "time": "11:01 PM",
+      "user": "Herrera"
+    },
+    {
+      "id": "TXN08",
+      "product": "Electrical Tape",
+      "category": "Tape",
+      "type": "Stock Out",
+      "quantity": 1,
+      "unit": "ROLLS",
+      "date": "22/02/2026",
+      "time": "11:01 PM",
+      "user": "Herrera"
+    },
+    {
+      "id": "TXN09",
+      "product": "4x4 Wood",
+      "category": "Lumber",
+      "type": "Stock In",
+      "quantity": 20,
+      "unit": "PCS",
+      "date": "22/02/2026",
+      "time": "11:03 PM",
+      "user": "Herrera"
+    },
+    {
+      "id": "TXN10",
+      "product": "Portland Cement 40kg",
+      "category": "Cement",
+      "type": "Stock In",
+      "quantity": 25,
+      "unit": "PCS",
+      "date": "22/02/2026",
+      "time": "11:08 PM",
+      "user": "Herrera"
+    },
+    {
+      "id": "TXN11",
+      "product": "Washed Sand",
+      "category": "Aggregates",
+      "type": "Stock In",
+      "quantity": 25,
+      "unit": "METERS",
+      "date": "22/02/2026",
+      "time": "11:09 PM",
+      "user": "Herrera"
+    },
+    {
+      "id": "TXN12",
+      "product": "CHB 4",
+      "category": "Concrete Hollow Blocks",
+      "type": "Stock In",
+      "quantity": 100,
+      "unit": "PCS",
+      "date": "22/02/2026",
+      "time": "11:10 PM",
+      "user": "Herrera"
+    },
+    {
+      "id": "TXN13",
+      "product": "CHB 6",
+      "category": "Concrete Hollow Blocks",
+      "type": "Stock In",
+      "quantity": 57,
+      "unit": "PCS",
+      "date": "22/02/2026",
+      "time": "11:10 PM",
+      "user": "Herrera"
+    },
+    {
+      "id": "TXN14",
+      "product": "Deformed Bar 10mm x 6m",
+      "category": "Steel Bars",
+      "type": "Stock In",
+      "quantity": 33,
+      "unit": "PCS",
+      "date": "22/02/2026",
+      "time": "11:11 PM",
+      "user": "Herrera"
+    },
+    {
+      "id": "TXN15",
+      "product": "Deformed Bar 12mm x 6m",
+      "category": "Steel Bars",
+      "type": "Stock In",
+      "quantity": 19,
+      "unit": "PCS",
+      "date": "22/02/2026",
+      "time": "11:12 PM",
+      "user": "Herrera"
+    },
+    {
+      "id": "TXN16",
+      "product": "Coco Lumber 2x2x8ft",
+      "category": "Lumber",
+      "type": "Stock In",
+      "quantity": 45,
+      "unit": "PCS",
+      "date": "22/02/2026",
+      "time": "11:13 PM",
+      "user": "Herrera"
+    },
+    {
+      "id": "TXN17",
+      "product": "Coco Lumber 2x3x10ft",
+      "category": "Lumber",
+      "type": "Stock In",
+      "quantity": 60,
+      "unit": "PCS",
+      "date": "22/02/2026",
+      "time": "11:13 PM",
+      "user": "Herrera"
+    },
+    {
+      "id": "TXN18",
+      "product": "Marine Plywood 1/2",
+      "category": "Plywood",
+      "type": "Stock In",
+      "quantity": 13,
+      "unit": "PCS",
+      "date": "22/02/2026",
+      "time": "11:13 PM",
+      "user": "Herrera"
+    },
+    {
+      "id": "TXN19",
+      "product": "Phenolic Board 3/4",
+      "category": "Plywood",
+      "type": "Stock In",
+      "quantity": 8,
+      "unit": "PCS",
+      "date": "22/02/2026",
+      "time": "11:14 PM",
+      "user": "Herrera"
+    },
+    {
+      "id": "TXN20",
+      "product": "Boysen White Latex 4L",
+      "category": "Paint",
+      "type": "Stock In",
+      "quantity": 9,
+      "unit": "PCS",
+      "date": "22/02/2026",
+      "time": "11:14 PM",
+      "user": "Herrera"
+    },
+    {
+      "id": "TXN21",
+      "product": "Boysen Quick Dry Exanmel 1L",
+      "category": "Paint",
+      "type": "Stock In",
+      "quantity": 4,
+      "unit": "PCS",
+      "date": "22/02/2026",
+      "time": "11:15 PM",
+      "user": "Herrera"
+    },
+    {
+      "id": "TXN22",
+      "product": "Paint Thinner 4L",
+      "category": "Solvent",
+      "type": "Stock In",
+      "quantity": 1,
+      "unit": "PCS",
+      "date": "22/02/2026",
+      "time": "11:15 PM",
+      "user": "Herrera"
+    },
+    {
+      "id": "TXN23",
+      "product": "Portland Cement 40kg",
+      "category": "Cement",
+      "type": "Stock Out",
+      "quantity": 5,
+      "unit": "PCS",
+      "date": "22/02/2026",
+      "time": "11:19 PM",
+      "user": "Teresita"
+    },
+    {
+      "id": "TXN24",
+      "product": "Deformed Bar 10mm x 6m",
+      "category": "Steel Bars",
+      "type": "Stock Out",
+      "quantity": 3,
+      "unit": "PCS",
+      "date": "22/02/2026",
+      "time": "11:19 PM",
+      "user": "Teresita"
+    },
+    {
+      "id": "TXN25",
+      "product": "Marine Plywood 1/2",
+      "category": "Plywood",
+      "type": "Stock Out",
+      "quantity": 2,
+      "unit": "PCS",
+      "date": "22/02/2026",
+      "time": "11:20 PM",
+      "user": "Teresita"
+    },
+    {
+      "id": "TXN26",
+      "product": "Washed Sand",
+      "category": "Aggregates",
+      "type": "Stock Out",
+      "quantity": 4,
+      "unit": "METERS",
+      "date": "22/02/2026",
+      "time": "11:20 PM",
+      "user": "Teresita"
+    },
+    {
+      "id": "TXN27",
+      "product": "Common Nails 2",
+      "category": "Nails",
+      "type": "Stock In",
+      "quantity": 2,
+      "unit": "BOX",
+      "date": "22/02/2026",
+      "time": "11:22 PM",
+      "user": "Jonas Formilleza"
+    },
+    {
+      "id": "TXN28",
+      "product": "Wood Screws",
+      "category": "Screws",
+      "type": "Stock In",
+      "quantity": 3,
+      "unit": "BOX",
+      "date": "22/02/2026",
+      "time": "11:22 PM",
+      "user": "Jonas Formilleza"
+    },
+    {
+      "id": "TXN29",
+      "product": "Portland Cement 40kg",
+      "category": "Cement",
+      "type": "Stock Out",
+      "quantity": 3,
+      "unit": "PCS",
+      "date": "22/02/2026",
+      "time": "11:23 PM",
+      "user": "Herrera"
+    },
+    {
+      "id": "TXN30",
+      "product": "Portland Cement 40kg",
+      "category": "Cement",
+      "type": "Stock In",
+      "quantity": 1,
+      "unit": "PCS",
+      "date": "22/02/2026",
+      "time": "11:27 PM",
+      "user": "Teresita"
+    },
+    {
+      "id": "TXN31",
+      "product": "Boysen White Latex 4L",
+      "category": "Paint",
+      "type": "Stock In",
+      "quantity": 2,
+      "unit": "BUCKETS",
+      "date": "22/02/2026",
+      "time": "11:36 PM",
+      "user": "Herrera"
+    },
+    {
+      "id": "TXN32",
+      "product": "Common Nails 2",
+      "category": "Nails",
+      "type": "Stock Out",
+      "quantity": 2,
+      "unit": "BOX",
+      "date": "22/02/2026",
+      "time": "11:37 PM",
+      "user": "Teresita"
+    },
+    {
+      "id": "TXN33",
+      "product": "Portland Cement 40kg",
+      "category": "Cement",
+      "type": "Stock In",
+      "quantity": 3,
+      "unit": "PCS",
+      "date": "01/03/2026",
+      "time": "09:14 PM",
+      "user": "Teresita"
+    },
+    {
+      "id": "TXN34",
+      "product": "Portland Cement 40kg",
+      "category": "Cement",
+      "type": "Stock In",
+      "quantity": 1,
+      "unit": "PCS",
+      "date": "02/03/2026",
+      "time": "12:48 AM",
+      "user": "Herrera"
+    },
+    {
+      "id": "TXN35",
+      "product": "4x4 Wood",
+      "category": "Plywood",
+      "type": "Stock In",
+      "quantity": 4,
+      "unit": "PCS",
+      "date": "02/03/2026",
+      "time": "12:56 AM",
+      "user": "Teresita"
+    },
+    {
+      "id": "TXN36",
+      "product": "Coco Lumber 2x3x10ft",
+      "category": "Lumber",
+      "type": "Stock Out",
+      "quantity": 7,
+      "unit": "PCS",
+      "date": "02/03/2026",
+      "time": "12:56 AM",
+      "user": "Jonas Formilleza"
+    },
+    {
+      "id": "TXN37",
+      "product": "Portland Cement 40kg",
+      "category": "Cement",
+      "type": "Stock In",
+      "quantity": 5,
+      "unit": "PCS",
+      "date": "07/03/2026",
+      "time": "06:28 PM",
+      "user": "Herrera, Christopher John"
+    },
+    {
+      "id": "TXN38",
+      "product": "Portland Cement 40kg",
+      "category": "Cement",
+      "type": "Stock In",
+      "quantity": 1,
+      "unit": "PCS",
+      "date": "07/03/2026",
+      "time": "06:30 PM",
+      "user": "Herrera, Christopher John"
+    },
+    {
+      "id": "TXN39",
+      "product": "Portland Cement 40kg",
+      "category": "Cement",
+      "type": "Stock Out",
+      "quantity": 3,
+      "unit": "PCS",
+      "date": "07/03/2026",
+      "time": "06:30 PM",
+      "user": "Herrera, Christopher John"
+    },
+    {
+      "id": "TXN40",
+      "product": "Portland Cement 40kg",
+      "category": "Cement",
+      "type": "Stock In",
+      "quantity": 4,
+      "unit": "PCS",
+      "date": "07/03/2026",
+      "time": "06:31 PM",
+      "user": "Herrera, Christopher John"
+    },
+    {
+      "id": "TXN41",
+      "product": "Washed Sand",
+      "category": "Aggregates",
+      "type": "Stock Out",
+      "quantity": 1,
+      "unit": "METERS",
+      "date": "07/03/2026",
+      "time": "06:34 PM",
+      "user": "Herrera, Christopher John"
+    },
+    {
+      "id": "TXN42",
+      "product": "Phenolic Board 3/4",
+      "category": "Plywood",
+      "type": "Stock In",
+      "quantity": 1,
+      "unit": "PCS",
+      "date": "07/03/2026",
+      "time": "06:34 PM",
+      "user": "Herrera, Christopher John"
+    },
+    {
+      "id": "TXN43",
+      "product": "Portland Cement 40kg",
+      "category": "Cement",
+      "type": "Stock Out",
+      "quantity": 3,
+      "unit": "PCS",
+      "date": "07/03/2026",
+      "time": "06:34 PM",
+      "user": "Herrera, Christopher John"
+    },
+    {
+      "id": "TXN44",
+      "product": "CHB 6",
+      "category": "Concrete Hollow Blocks",
+      "type": "Stock Out",
+      "quantity": 5,
+      "unit": "PCS",
+      "date": "07/03/2026",
+      "time": "06:34 PM",
+      "user": "Herrera, Christopher John"
+    },
+    {
+      "id": "TXN45",
+      "product": "CHB 6",
+      "category": "Concrete Hollow Blocks",
+      "type": "Stock In",
+      "quantity": 2,
+      "unit": "PCS",
+      "date": "07/03/2026",
+      "time": "06:34 PM",
+      "user": "Herrera, Christopher John"
+    },
+    {
+      "id": "TXN46",
+      "product": "Portland Cement 40kg",
+      "category": "Cement",
+      "type": "Stock Out",
+      "quantity": 2,
+      "unit": "PCS",
+      "date": "07/03/2026",
+      "time": "06:35 PM",
+      "user": "Herrera, Christopher John"
+    },
+    {
+      "id": "TXN47",
+      "product": "Portland Cement 40kg",
+      "category": "Cement",
+      "type": "Stock In",
+      "quantity": 5,
+      "unit": "PCS",
+      "date": "07/03/2026",
+      "time": "06:35 PM",
+      "user": "Jemar Penilla"
+    },
+    {
+      "id": "TXN48",
+      "product": "Phenolic Board 3/4",
+      "category": "Plywood",
+      "type": "Stock Out",
+      "quantity": 1,
+      "unit": "PCS",
+      "date": "07/03/2026",
+      "time": "06:35 PM",
+      "user": "Teresita, Tragura"
+    },
+    {
+      "id": "TXN49",
+      "product": "3/4 Gravel",
+      "category": "Aggregates",
+      "type": "Stock Out",
+      "quantity": 16,
+      "unit": "METERS",
+      "date": "09/03/2026",
+      "time": "03:08 AM",
+      "user": "Herrera, Christopher John"
+    },
+    {
+      "id": "TXN50",
+      "product": "3/4 Gravel",
+      "category": "Aggregates",
+      "type": "Stock Out",
+      "quantity": 1,
+      "unit": "METERS",
+      "date": "09/03/2026",
+      "time": "03:08 AM",
+      "user": "Herrera, Christopher John"
+    }
+  ]
+}
