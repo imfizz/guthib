@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: bhandol-hardware-system
+    runtime: node
+    plan: free
+    # The Node app (package.json, server.js) lives in the server/ folder.
+    # It also serves the static frontend from the repo root via express.static.
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      # Set the actual value in the Render dashboard (Environment tab).
+      # sync:false keeps the secret out of this committed file.
+      - key: MONGO_URI
+        sync: false
+      - key: MONGO_DB
+        value: bhandol

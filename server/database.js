@@ -1,62 +1,40 @@
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
+const { MongoClient } = require('mongodb');
+require('dotenv').config();
 
-const dbPath = path.resolve(__dirname, 'bhandol.db');
-const db = new sqlite3.Database(dbPath, (err) => {
-  if (err) {
-    console.error('Error opening database', err.message);
-  } else {
-    console.log('Connected to the SQLite database.');
+const uri = process.env.MONGO_URI;
+const dbName = process.env.MONGO_DB || 'bhandol';
 
-    // Create Users Table
-    db.run(`CREATE TABLE IF NOT EXISTS users (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      username TEXT UNIQUE NOT NULL,
-      password TEXT NOT NULL,
-      role TEXT NOT NULL,
-      status TEXT NOT NULL
-    )`);
+if (!uri) {
+  console.error('FATAL: MONGO_URI is not set. Create a server/.env file with your MongoDB Atlas connection string.');
+  process.exit(1);
+}
 
-    // Create Products Table
-    db.run(`CREATE TABLE IF NOT EXISTS products (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      category TEXT NOT NULL,
-      unit TEXT NOT NULL,
-      quantity INTEGER NOT NULL,
-      dateAdded TEXT NOT NULL,
-      user TEXT NOT NULL
-    )`);
+const client = new MongoClient(uri);
+let db = null;
 
-    // Create Transactions Table
-    db.run(`CREATE TABLE IF NOT EXISTS transactions (
-      id TEXT PRIMARY KEY,
-      product TEXT NOT NULL,
-      category TEXT NOT NULL,
-      type TEXT NOT NULL,
-      quantity INTEGER NOT NULL,
-      unit TEXT NOT NULL,
-      date TEXT NOT NULL,
-      time TEXT NOT NULL,
-      user TEXT NOT NULL
-    )`);
+// Connect once at startup and create the indexes that replace SQLite's
+// PRIMARY KEY / UNIQUE constraints.
+async function connect() {
+  if (db) return db;
+  await client.connect();
+  db = client.db(dbName);
 
-    // Create Export Logs Table
-    db.run(`CREATE TABLE IF NOT EXISTS export_logs (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user TEXT NOT NULL,
-      type TEXT NOT NULL,
-      date TEXT NOT NULL,
-      time TEXT NOT NULL
-    )`);
+  await Promise.all([
+    db.collection('users').createIndex({ id: 1 }, { unique: true }),
+    db.collection('users').createIndex({ username: 1 }, { unique: true }),
+    db.collection('products').createIndex({ id: 1 }, { unique: true }),
+    db.collection('transactions').createIndex({ id: 1 }, { unique: true }),
+    db.collection('settings').createIndex({ key: 1 }, { unique: true }),
+  ]);
 
-    // Create Settings Table (key-value store for configurable system settings)
-    db.run(`CREATE TABLE IF NOT EXISTS settings (
-      key TEXT PRIMARY KEY,
-      value TEXT NOT NULL
-    )`);
-  }
-});
+  console.log(`Connected to the MongoDB database: ${dbName}`);
+  return db;
+}
 
-module.exports = db;
+// Throws if connect() hasn't run yet — keeps routes from silently hitting a null db.
+function getDb() {
+  if (!db) throw new Error('Database not connected. Call connect() first.');
+  return db;
+}
+
+module.exports = { connect, getDb, client };

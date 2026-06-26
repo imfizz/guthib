@@ -2,15 +2,19 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const bcrypt = require('bcryptjs');
-const db = require('./database');
+const { connect, getDb } = require('./database');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 const SALT_ROUNDS = 10;
 
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '..')));
+
+// Exclude Mongo's internal _id from API responses so the JSON shape matches
+// what the frontend expected from SQLite.
+const NO_ID = { projection: { _id: 0 } };
 
 // =============================================
 //  VALIDATION HELPERS
@@ -37,15 +41,24 @@ function validationError(res, errors) {
     return res.status(400).json({ error: 'Validation failed', details: errors });
 }
 
+// MongoDB raises code 11000 for any unique-index violation.
+function isDuplicateKey(err) {
+    return err && err.code === 11000;
+}
+
 // =============================================
 //  USERS API
 // =============================================
-app.get('/api/users', (req, res) => {
-    // SECURITY OVERRIDE: User explicitly requested passwords be viewable in Admin portal.
-    db.all("SELECT id, name, username, password, role, status FROM users", [], (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
+app.get('/api/users', async (req, res) => {
+    try {
+        // SECURITY OVERRIDE: User explicitly requested passwords be viewable in Admin portal.
+        const rows = await getDb().collection('users')
+            .find({}, { projection: { _id: 0, id: 1, name: 1, username: 1, password: 1, role: 1, status: 1 } })
+            .toArray();
         res.json(rows);
-    });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 app.post('/api/users', async (req, res) => {
@@ -69,38 +82,41 @@ app.post('/api/users', async (req, res) => {
     if (!['Active', 'Inactive'].includes(status)) errors.push('Status must be "Active" or "Inactive".');
     if (errors.length > 0) return validationError(res, errors);
 
-    // SECURITY OVERRIDE: User explicitly requested plaintext passwords.
-    const sql = `INSERT INTO users (id, name, username, password, role, status) VALUES (?,?,?,?,?,?)`;
-    db.run(sql, [id, name, username, password, role, status], function (err) {
-        if (err) {
-            if (err.message.includes('UNIQUE')) {
-                return res.status(409).json({ error: 'Username already exists.' });
-            }
-            return res.status(500).json({ error: err.message });
-        }
+    try {
+        // SECURITY OVERRIDE: User explicitly requested plaintext passwords.
+        await getDb().collection('users').insertOne({ id, name, username, password, role, status });
         res.json({ id, name, username, role, status });
-    });
+    } catch (err) {
+        if (isDuplicateKey(err)) {
+            return res.status(409).json({ error: 'Username already exists.' });
+        }
+        res.status(500).json({ error: err.message });
+    }
 });
 
-app.put('/api/users/:id/status', (req, res) => {
+app.put('/api/users/:id/status', async (req, res) => {
     const { status } = req.body;
     if (!['Active', 'Inactive'].includes(status)) {
         return validationError(res, ['Status must be "Active" or "Inactive".']);
     }
-    db.run(`UPDATE users SET status = ? WHERE id = ?`, [status, req.params.id], function (err) {
-        if (err) return res.status(500).json({ error: err.message });
+    try {
+        await getDb().collection('users').updateOne({ id: req.params.id }, { $set: { status } });
         res.json({ success: true });
-    });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
-app.delete('/api/users/:id', (req, res) => {
-    db.run(`DELETE FROM users WHERE id = ?`, [req.params.id], function (err) {
-        if (err) return res.status(500).json({ error: err.message });
+app.delete('/api/users/:id', async (req, res) => {
+    try {
+        await getDb().collection('users').deleteOne({ id: req.params.id });
         res.json({ message: 'User deleted' });
-    });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', async (req, res) => {
     let { username, password } = req.body;
 
     if (!username || !password) {
@@ -113,46 +129,46 @@ app.post('/api/auth/login', (req, res) => {
     // Constant time delay to mitigate brute force & timing attacks
     const failDelay = (callback) => setTimeout(callback, 800 + Math.random() * 400);
 
-    db.get(`SELECT * FROM users WHERE username = ? AND status = 'Active'`, [username], async (err, row) => {
-        if (err) return res.status(500).json({ error: err.message });
+    try {
+        const row = await getDb().collection('users').findOne({ username, status: 'Active' });
         if (!row) {
             // Wait to respond to mask whether the username actually exists (timing attack mitigation)
             return failDelay(() => res.status(401).json({ success: false, message: 'Invalid credentials or inactive account' }));
         }
 
-        try {
-            // Support both: legacy bcrypt hashed passwords AND new plain-text passwords
-            let isMatch = false;
-            if (row.password.startsWith('$2a$') || row.password.startsWith('$2b$')) {
-                // bcrypt hash detected from previously created accounts
-                isMatch = await bcrypt.compare(password, row.password);
-            } else {
-                // SECURITY OVERRIDE: Plain-text password (left as plaintext per user request to be viewable)
-                isMatch = (password === row.password);
-            }
-
-            if (isMatch) {
-                res.json({ success: true, user: { id: row.id, name: row.name, username: row.username, role: row.role } });
-            } else {
-                failDelay(() => res.status(401).json({ success: false, message: 'Invalid credentials or inactive account' }));
-            }
-        } catch (bcryptErr) {
-            failDelay(() => res.status(500).json({ error: 'Authentication error.' }));
+        // Support both: legacy bcrypt hashed passwords AND new plain-text passwords
+        let isMatch = false;
+        if (row.password.startsWith('$2a$') || row.password.startsWith('$2b$')) {
+            // bcrypt hash detected from previously created accounts
+            isMatch = await bcrypt.compare(password, row.password);
+        } else {
+            // SECURITY OVERRIDE: Plain-text password (left as plaintext per user request to be viewable)
+            isMatch = (password === row.password);
         }
-    });
+
+        if (isMatch) {
+            res.json({ success: true, user: { id: row.id, name: row.name, username: row.username, role: row.role } });
+        } else {
+            failDelay(() => res.status(401).json({ success: false, message: 'Invalid credentials or inactive account' }));
+        }
+    } catch (err) {
+        failDelay(() => res.status(500).json({ error: 'Authentication error.' }));
+    }
 });
 
 // =============================================
 //  INVENTORY API
 // =============================================
-app.get('/api/inventory', (req, res) => {
-    db.all("SELECT * FROM products", [], (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
+app.get('/api/inventory', async (req, res) => {
+    try {
+        const rows = await getDb().collection('products').find({}, NO_ID).toArray();
         res.json(rows);
-    });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
-app.post('/api/inventory', (req, res) => {
+app.post('/api/inventory', async (req, res) => {
     const { id, name, category, unit, quantity, dateAdded, user } = req.body;
 
     // Validate — store result to avoid calling validator twice
@@ -173,14 +189,24 @@ app.post('/api/inventory', (req, res) => {
     if (userErr) errors.push(userErr);
     if (errors.length > 0) return validationError(res, errors);
 
-    const sql = `INSERT INTO products (id, name, category, unit, quantity, dateAdded, user) VALUES (?,?,?,?,?,?,?)`;
-    db.run(sql, [id, name.trim(), category.trim(), unit.trim(), parseInt(quantity, 10), dateAdded, user], function (err) {
-        if (err) return res.status(500).json({ error: err.message });
+    try {
+        await getDb().collection('products').insertOne({
+            id,
+            name: name.trim(),
+            category: category.trim(),
+            unit: unit.trim(),
+            quantity: parseInt(quantity, 10),
+            dateAdded,
+            user,
+        });
         res.json({ success: true, id });
-    });
+    } catch (err) {
+        if (isDuplicateKey(err)) return res.status(409).json({ error: 'Product ID already exists.' });
+        res.status(500).json({ error: err.message });
+    }
 });
 
-app.put('/api/inventory/:id', (req, res) => {
+app.put('/api/inventory/:id', async (req, res) => {
     const { name, category, unit, quantity } = req.body;
 
     const errors = [];
@@ -194,86 +220,81 @@ app.put('/api/inventory/:id', (req, res) => {
     if (qtyErr) errors.push(qtyErr);
     if (errors.length > 0) return validationError(res, errors);
 
-    const sql = `UPDATE products SET name = ?, category = ?, unit = ?, quantity = ? WHERE id = ?`;
-    db.run(sql, [name.trim(), category.trim(), unit.trim(), parseInt(quantity, 10), req.params.id], function (err) {
-        if (err) return res.status(500).json({ error: err.message });
+    try {
+        await getDb().collection('products').updateOne(
+            { id: req.params.id },
+            { $set: { name: name.trim(), category: category.trim(), unit: unit.trim(), quantity: parseInt(quantity, 10) } }
+        );
         res.json({ success: true });
-    });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
-app.put('/api/inventory/:id/quantity', (req, res) => {
+app.put('/api/inventory/:id/quantity', async (req, res) => {
     const { quantityDelta, user } = req.body;
     // Bug Fix: store result once to avoid redundant double-call
     const deltaErr = validateInt(quantityDelta, 'Quantity Delta', -999999, 999999);
     if (deltaErr) return validationError(res, [deltaErr]);
 
     const delta = parseInt(quantityDelta, 10);
+    const products = getDb().collection('products');
+    const settings = getDb().collection('settings');
 
-    // Low Stock Protection — only applies to stock-out (negative delta)
-    if (delta < 0) {
-        db.get(`SELECT value FROM settings WHERE key = 'lowStockProtectionEnabled'`, [], (err, row) => {
-            if (!row || row.value !== 'true') {
-                // Protection is disabled — proceed normally
-                executeQuantityUpdate();
-                return;
+    try {
+        // Low Stock Protection — only applies to stock-out (negative delta)
+        if (delta < 0) {
+            const protRow = await settings.findOne({ key: 'lowStockProtectionEnabled' });
+            if (protRow && protRow.value === 'true') {
+                const prod = await products.findOne({ id: req.params.id });
+                if (!prod) return res.status(500).json({ error: 'Product not found.' });
+
+                const thRow = await settings.findOne({ key: 'lowStockThreshold' });
+                const threshold = thRow ? parseInt(thRow.value, 10) : 8;
+                const resultingQty = prod.quantity + delta; // delta is negative
+                if (resultingQty <= threshold) {
+                    return res.status(409).json({
+                        error: 'LOW_STOCK_PROTECTION',
+                        message: `Low Stock Protection is active. Cannot reduce stock of this item to ${resultingQty} — the minimum safe quantity is ${threshold + 1} units.`,
+                        threshold,
+                        currentQty: prod.quantity,
+                        resultingQty
+                    });
+                }
             }
-            // Protection is enabled — check if the resulting quantity would fall at or below threshold
-            db.get(`SELECT quantity FROM products WHERE id = ?`, [req.params.id], (err2, prod) => {
-                if (err2 || !prod) return res.status(500).json({ error: 'Product not found.' });
-                db.get(`SELECT value FROM settings WHERE key = 'lowStockThreshold'`, [], (err3, thRow) => {
-                    const threshold = thRow ? parseInt(thRow.value, 10) : 8;
-                    const resultingQty = prod.quantity + delta; // delta is negative
-                    if (resultingQty <= threshold) {
-                        return res.status(409).json({
-                            error: 'LOW_STOCK_PROTECTION',
-                            message: `Low Stock Protection is active. Cannot reduce stock of this item to ${resultingQty} — the minimum safe quantity is ${threshold + 1} units.`,
-                            threshold,
-                            currentQty: prod.quantity,
-                            resultingQty
-                        });
-                    }
-                    executeQuantityUpdate();
-                });
-            });
-        });
-    } else {
-        executeQuantityUpdate();
-    }
-
-    function executeQuantityUpdate() {
-        let sql, params;
-        if (user) {
-            sql = `UPDATE products SET quantity = quantity + ?, user = ? WHERE id = ?`;
-            params = [delta, user, req.params.id];
-        } else {
-            sql = `UPDATE products SET quantity = quantity + ? WHERE id = ?`;
-            params = [delta, req.params.id];
         }
-        db.run(sql, params, function (err) {
-            if (err) return res.status(500).json({ error: err.message });
-            res.json({ success: true });
-        });
+
+        const update = { $inc: { quantity: delta } };
+        if (user) update.$set = { user };
+        await products.updateOne({ id: req.params.id }, update);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
 
-app.delete('/api/inventory/:id', (req, res) => {
-    db.run(`DELETE FROM products WHERE id = ?`, [req.params.id], function (err) {
-        if (err) return res.status(500).json({ error: err.message });
+app.delete('/api/inventory/:id', async (req, res) => {
+    try {
+        await getDb().collection('products').deleteOne({ id: req.params.id });
         res.json({ message: 'Product deleted' });
-    });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // =============================================
 //  TRANSACTIONS API
 // =============================================
-app.get('/api/transactions', (req, res) => {
-    db.all("SELECT * FROM transactions", [], (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
+app.get('/api/transactions', async (req, res) => {
+    try {
+        const rows = await getDb().collection('transactions').find({}, NO_ID).toArray();
         res.json(rows);
-    });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
-app.post('/api/transactions', (req, res) => {
+app.post('/api/transactions', async (req, res) => {
     const { id, product, category, type, quantity, unit, date, time, user } = req.body;
 
     const errors = [];
@@ -296,43 +317,53 @@ app.post('/api/transactions', (req, res) => {
     if (userErr) errors.push(userErr);
     if (errors.length > 0) return validationError(res, errors);
 
-    const sql = `INSERT INTO transactions (id, product, category, type, quantity, unit, date, time, user) VALUES (?,?,?,?,?,?,?,?,?)`;
-    db.run(sql, [id, product, category, type, parseInt(quantity, 10), unit, date, time, user], function (err) {
-        if (err) return res.status(500).json({ error: err.message });
+    try {
+        await getDb().collection('transactions').insertOne({
+            id, product, category, type, quantity: parseInt(quantity, 10), unit, date, time, user
+        });
         res.json({ success: true, id });
-    });
+    } catch (err) {
+        if (isDuplicateKey(err)) return res.status(409).json({ error: 'Transaction ID already exists.' });
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // NOTE: Specific routes must be defined BEFORE parameterized routes to avoid mis-matching.
 // e.g. DELETE /api/transactions/type/Stock In must NOT match /:id with id='type'
-app.delete('/api/transactions', (req, res) => {
-    db.run(`DELETE FROM transactions`, [], function (err) {
-        if (err) return res.status(500).json({ error: err.message });
+app.delete('/api/transactions', async (req, res) => {
+    try {
+        await getDb().collection('transactions').deleteMany({});
         res.json({ success: true, message: 'All transactions cleared' });
-    });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
-app.delete('/api/transactions/type/:type', (req, res) => {
+app.delete('/api/transactions/type/:type', async (req, res) => {
     if (!['Stock In', 'Stock Out'].includes(req.params.type)) {
         return validationError(res, ['Type must be "Stock In" or "Stock Out".']);
     }
-    db.run(`DELETE FROM transactions WHERE type = ?`, [req.params.type], function (err) {
-        if (err) return res.status(500).json({ error: err.message });
+    try {
+        await getDb().collection('transactions').deleteMany({ type: req.params.type });
         res.json({ success: true, message: `${req.params.type} transactions cleared` });
-    });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
-app.delete('/api/transactions/:id', (req, res) => {
-    db.run(`DELETE FROM transactions WHERE id = ?`, [req.params.id], function (err) {
-        if (err) return res.status(500).json({ error: err.message });
+app.delete('/api/transactions/:id', async (req, res) => {
+    try {
+        await getDb().collection('transactions').deleteOne({ id: req.params.id });
         res.json({ message: 'Transaction deleted' });
-    });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // =============================================
 //  EXPORT LOGS API
 // =============================================
-app.post('/api/export-logs', (req, res) => {
+app.post('/api/export-logs', async (req, res) => {
     const { user, type, date, time } = req.body;
 
     const errors = [];
@@ -342,41 +373,53 @@ app.post('/api/export-logs', (req, res) => {
     if (validateString(time, 'Time')) errors.push(validateString(time, 'Time'));
     if (errors.length > 0) return validationError(res, errors);
 
-    const sql = `INSERT INTO export_logs (user, type, date, time) VALUES (?,?,?,?)`;
-    db.run(sql, [user, type, date, time], function (err) {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json({ success: true, id: this.lastID });
-    });
+    try {
+        // createdAt gives a stable sort key in place of SQLite's AUTOINCREMENT id.
+        const result = await getDb().collection('export_logs').insertOne({ user, type, date, time, createdAt: new Date() });
+        res.json({ success: true, id: result.insertedId });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
-app.get('/api/export-logs', (req, res) => {
-    db.all("SELECT * FROM export_logs ORDER BY id DESC LIMIT 20", [], (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
+app.get('/api/export-logs', async (req, res) => {
+    try {
+        const rows = await getDb().collection('export_logs')
+            .find({}, { projection: { _id: 0, createdAt: 0 } })
+            .sort({ createdAt: -1 })
+            .limit(20)
+            .toArray();
         res.json(rows);
-    });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
-app.delete('/api/export-logs', (req, res) => {
-    db.run(`DELETE FROM export_logs`, [], function (err) {
-        if (err) return res.status(500).json({ error: err.message });
+app.delete('/api/export-logs', async (req, res) => {
+    try {
+        await getDb().collection('export_logs').deleteMany({});
         res.json({ success: true, message: 'Export logs cleared' });
-    });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // =============================================
 //  SETTINGS API (Admin)
 // =============================================
-app.get('/api/settings', (req, res) => {
-    db.all(`SELECT key, value FROM settings`, [], (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
+app.get('/api/settings', async (req, res) => {
+    try {
+        const rows = await getDb().collection('settings').find({}, { projection: { _id: 0, key: 1, value: 1 } }).toArray();
         // Return as a flat key-value object for easy client-side consumption
         const result = {};
         rows.forEach(r => result[r.key] = r.value);
         res.json(result);
-    });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
-app.post('/api/settings', (req, res) => {
+app.post('/api/settings', async (req, res) => {
     const { key, value } = req.body;
     const keyErr = validateString(key, 'Key');
     if (keyErr) return validationError(res, [keyErr]);
@@ -388,59 +431,56 @@ app.post('/api/settings', (req, res) => {
         return res.status(400).json({ error: `Unknown setting key: ${key}` });
     }
 
-    db.run(`INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
-        [key, String(value)], function (err) {
-            if (err) return res.status(500).json({ error: err.message });
-            res.json({ success: true, key, value });
-        });
+    try {
+        await getDb().collection('settings').updateOne(
+            { key },
+            { $set: { value: String(value) } },
+            { upsert: true }
+        );
+        res.json({ success: true, key, value });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // =============================================
 //  SYSTEM TOOLS
 // =============================================
-app.post('/api/system/restore', (req, res) => {
+app.post('/api/system/restore', async (req, res) => {
     const { users, products, transactions } = req.body;
     if (!users || !products || !transactions) {
         return validationError(res, ['Backup must contain users, products, and transactions arrays.']);
     }
 
-    // Use db.serialize() with synchronous sqlite3 statement methods only.
-    // db.serialize(async () => {}) does NOT work — sqlite3 cannot track async callbacks,
-    // so the response would fire before all inserts complete (race condition).
-    db.serialize(() => {
-        db.run("DELETE FROM users");
-        db.run("DELETE FROM products");
-        db.run("DELETE FROM transactions");
+    try {
+        const db = getDb();
+        await Promise.all([
+            db.collection('users').deleteMany({}),
+            db.collection('products').deleteMany({}),
+            db.collection('transactions').deleteMany({}),
+        ]);
 
-        if (users && users.length) {
-            const uStmt = db.prepare(`INSERT OR REPLACE INTO users VALUES (?,?,?,?,?,?)`);
-            for (const u of users) {
-                uStmt.run(u.id, u.name, u.username, u.password, u.role, u.status);
-            }
-            uStmt.finalize();
-        }
-        if (products && products.length) {
-            const pStmt = db.prepare(`INSERT OR REPLACE INTO products VALUES (?,?,?,?,?,?,?)`);
-            products.forEach(p => pStmt.run(p.id, p.name, p.category, p.unit, p.quantity, p.dateAdded, p.user));
-            pStmt.finalize();
-        }
-        if (transactions && transactions.length) {
-            const tStmt = db.prepare(`INSERT OR REPLACE INTO transactions VALUES (?,?,?,?,?,?,?,?,?)`);
-            transactions.forEach(t => tStmt.run(t.id, t.product, t.category, t.type, t.quantity, t.unit, t.date, t.time, t.user));
-            // Use finalize with a callback to only send the response AFTER all inserts complete
-            tStmt.finalize((err) => {
-                if (err) return res.status(500).json({ error: err.message });
-                res.json({ success: true, message: 'Restore completed' });
-            });
-        } else {
-            // No transactions in backup — still need to respond after other ops are queued
-            db.run('SELECT 1', () => {
-                res.json({ success: true, message: 'Restore completed' });
-            });
-        }
+        // Strip any _id that may be present in the backup so Mongo assigns fresh ones.
+        const clean = (arr) => arr.map(({ _id, ...rest }) => rest);
+
+        if (users.length) await db.collection('users').insertMany(clean(users));
+        if (products.length) await db.collection('products').insertMany(clean(products));
+        if (transactions.length) await db.collection('transactions').insertMany(clean(transactions));
+
+        res.json({ success: true, message: 'Restore completed' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Connect to MongoDB first, then start accepting requests.
+connect()
+    .then(() => {
+        app.listen(PORT, () => {
+            console.log(`Backend server running on http://localhost:${PORT}`);
+        });
+    })
+    .catch((err) => {
+        console.error('Failed to connect to MongoDB:', err.message);
+        process.exit(1);
     });
-});
-
-app.listen(PORT, () => {
-    console.log(`Backend server running on http://localhost:${PORT}`);
-});

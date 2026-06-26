@@ -8,7 +8,9 @@ let appProducts = [];
 let appTxns = [];
 let currentFilteredProducts = null;
 let currentFilteredTxns = null;
-const API_URL = "https://bhandol-hardware-system.onrender.com/api";
+// Relative path — works in local dev (localhost:3000/api) and in production
+// (same origin as wherever the app is hosted, e.g. Render).
+const API_URL = "/api";
 
 // ===== CATEGORY COLOR SYSTEM =====
 const CATEGORY_COLORS = [

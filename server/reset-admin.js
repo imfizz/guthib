@@ -1,6 +1,5 @@
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
 const bcrypt = require('bcryptjs');
+const { connect, client } = require('./database');
 
 // Parse CLI arguments
 const args = process.argv.slice(2);
@@ -22,26 +21,16 @@ if (newPassword.length < 4) {
     process.exit(1);
 }
 
-const dbPath = path.resolve(__dirname, 'bhandol.db');
-const db = new sqlite3.Database(dbPath, (err) => {
-    if (err) {
-        console.error('❌ ERROR: Could not connect to database:', err.message);
-        process.exit(1);
-    }
-});
+async function resetAdmin() {
+    const db = await connect();
 
-console.log(`\n🔍 Searching for user: "${targetUsername}"...`);
+    console.log(`\n🔍 Searching for user: "${targetUsername}"...`);
 
-db.get(`SELECT id, role FROM users WHERE username = ?`, [targetUsername], async (err, user) => {
-    if (err) {
-        console.error('❌ ERROR: Database query failed:', err.message);
-        db.close();
-        process.exit(1);
-    }
+    const user = await db.collection('users').findOne({ username: targetUsername }, { projection: { id: 1, role: 1 } });
 
     if (!user) {
         console.log(`❌ ERROR: User "${targetUsername}" not found in the database.`);
-        db.close();
+        await client.close();
         process.exit(1);
     }
 
@@ -50,29 +39,22 @@ db.get(`SELECT id, role FROM users WHERE username = ?`, [targetUsername], async 
         console.log('Proceeding with password reset anyway...');
     }
 
-    try {
-        console.log('🔐 Hashing new password securely...');
-        const SALT_ROUNDS = 10;
-        const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
+    console.log('🔐 Hashing new password securely...');
+    const SALT_ROUNDS = 10;
+    const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
 
-        db.run(`UPDATE users SET password = ? WHERE id = ?`, [hashedPassword, user.id], function (updateErr) {
-            if (updateErr) {
-                console.error('❌ ERROR: Failed to update password:', updateErr.message);
-                db.close();
-                process.exit(1);
-            }
+    await db.collection('users').updateOne({ id: user.id }, { $set: { password: hashedPassword } });
 
-            console.log('----------------------------------------------------');
-            console.log(`✅ SUCCESS! Password for "${targetUsername}" has been reset.`);
-            console.log(`You can now log in at the main screen using the new password.`);
-            console.log('----------------------------------------------------\n');
-            db.close();
-            process.exit(0);
-        });
+    console.log('----------------------------------------------------');
+    console.log(`✅ SUCCESS! Password for "${targetUsername}" has been reset.`);
+    console.log(`You can now log in at the main screen using the new password.`);
+    console.log('----------------------------------------------------\n');
 
-    } catch (hashErr) {
-        console.error('❌ ERROR: Failed to hash the password properly:', hashErr);
-        db.close();
-        process.exit(1);
-    }
+    await client.close();
+    process.exit(0);
+}
+
+resetAdmin().catch(err => {
+    console.error('❌ ERROR:', err.message);
+    process.exit(1);
 });
